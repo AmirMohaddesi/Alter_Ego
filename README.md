@@ -37,7 +37,7 @@ Key capabilities:
 ├─ requirements.txt
 ├─ .env.example
 ├─ me/
-│  ├─ summary.txt
+│  ├─ summary.txt       # Please replace this with your own summery here
 │  ├─ resume.pdf        # placeholder
 │  └─ linkedin.pdf      # placeholder
 └─ README.md
