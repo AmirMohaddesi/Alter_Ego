@@ -1,0 +1,4 @@
+AI/Robotics Engineer with a Ph.D. in Robotics and 6+ years of experience in machine learning, multi-agent systems,
+and simulation. Currently specializing in Agentic AI—integrating Large Language Models (LLMs) with ROS2 to enable
+autonomous, language-driven decision-making in robotics. Proficient in PyTorch, Hugging Face, and LangChain, with a
+strong track record in reinforcement learning, transformer models, and emerging agentic AI applications.
