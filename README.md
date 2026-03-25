@@ -7,11 +7,27 @@ sdk_version: 5.34.2
 
 # Alter Ego
 
-Portfolio-style conversational agent that answers questions as a professional profile persona, grounded in local source documents (`me/summary.txt`, optional resume PDF, optional LinkedIn PDF).
+**Alter Ego** is a small, production-minded **Gradio chat demo** that answers career and background questions in a fixed persona, grounded in **local documents** you control. It uses OpenAI function calling for lightweight lead capture and “unknown question” logging (optional Pushover), and it is designed to **deploy cleanly on Hugging Face Spaces** without brittle local assumptions.
 
-- Live demo: [Hugging Face Space](https://huggingface.co/spaces/AMIXXM/Career_Conversation)
-- Runtime: Python + Gradio + OpenAI Chat Completions
-- Primary use case: recruiter/client-facing Q&A assistant for a personal site
+- **Live demo:** [Hugging Face Space](https://huggingface.co/spaces/AMIXXM/Career_Conversation)
+- **Stack:** Python · Gradio · OpenAI Chat Completions · `pypdf` (read-only PDF text)
+- **Audience:** recruiters, collaborators, and portfolio reviewers who want grounded answers, not a generic chatbot
+
+## How it works
+
+1. On startup, the app loads **`me/summary.txt`** and, if present, extracts text from **`me/linkedin.pdf`** and **`me/resume.pdf`** (read-only).
+2. That text is injected into a **system prompt** so the model stays in character and cites your real profile material.
+3. Each user message is sent to **OpenAI** with **tools** for recording an email (`record_user_details`) and logging unanswered questions (`record_unknown_question`). Tool handlers may send **Pushover** notifications when credentials are set.
+4. If **`OPENAI_API_KEY`** is missing, the Space still **starts**; chat returns a clear **demo-mode** message instead of failing at import or first request.
+
+## Modes
+
+| Mode | `OPENAI_API_KEY` | Profile files | Behavior |
+|------|------------------|---------------|----------|
+| **Personal** | Set | Your `me/summary.txt` + optional PDFs | Full AI replies grounded on your files; tools active when the model calls them. |
+| **Demo** | Unset | Any (missing PDFs OK) | UI loads; each reply explains that the Space needs API secrets for live answers. |
+
+Protected inputs: **`me/resume.pdf`** and **`me/linkedin.pdf`** are **never written** by this app—only read. There is **no** code path that saves or overwrites them.
 
 ## Why This Project
 
@@ -49,16 +65,19 @@ This design is intentionally simple and easy to fork for other personas.
 ├─ requirements.txt
 ├─ .env.example
 ├─ .gitignore
+├─ scripts/
+│  └─ smoke_gradio_build.py
+├─ outputs/              # reserved for future exports; app does not write profile PDFs here
 ├─ tests/
 │  └─ test_app.py
 ├─ me/
-│  └─ summary.txt
+│  ├─ summary.txt
+│  ├─ resume.pdf         # optional; your copy — add with -f if .gitignore excludes it
+│  └─ linkedin.pdf       # optional; your copy — add with -f if .gitignore excludes it
 └─ README.md
 ```
 
-Optional files (not committed by default):
-- `me/resume.pdf`
-- `me/linkedin.pdf`
+**Git and your PDFs:** `.gitignore` may exclude `me/*.pdf` so you can keep them local-only. To **ship the same PDFs to Hugging Face** via git, force-add once: `git add -f me/resume.pdf me/linkedin.pdf` then commit and push. The application never modifies those files.
 
 ## Setup
 
@@ -116,11 +135,6 @@ python app.py
 
 Then open the local Gradio URL shown in the terminal.
 
-### Local modes
-
-- **Personal mode (full behavior):** set `OPENAI_API_KEY` and keep your profile files in `me/`.
-- **Demo mode (degraded):** if `OPENAI_API_KEY` is not set, the app still starts and returns a clear demo-mode message instead of crashing.
-
 ## Example Usage
 
 Try prompts such as:
@@ -135,36 +149,33 @@ Expected output:
 
 ## Validation
 
-Run the included sanity tests:
-
 ```bash
 pytest -q
 ```
 
-These tests verify core non-network behaviors (PDF loading fallback and email validation tool behavior).
+Optional one-shot **deployment smoke** (no server listen, no API key):
+
+```bash
+python scripts/smoke_gradio_build.py
+```
+
+Tests cover PDF missing-file fallback, tool email validation, demo-mode chat message, Gradio interface construction without secrets, and safe `Me()` bootstrap.
 
 ## Deployment (Hugging Face Spaces)
 
-### Target type
+**SDK:** **Gradio** (declared in this file’s YAML front matter: `sdk: gradio`, `app_file: app.py`). Hugging Face runs `app.py` and Gradio serves the UI—no Streamlit or Docker required for this repo.
 
-This project should be deployed as a **Gradio Space**:
-- `sdk: gradio` is defined in the README front matter
-- `app_file: app.py` is the active entrypoint
+1. Create or open a **Gradio** Space linked to this GitHub repo (or push this repo to `huggingface.co/spaces/...`).
+2. Ensure **`app.py`** remains the entry file; keep **`requirements.txt`** aligned with pinned deps.
+3. **Settings → Variables and secrets:** set **`OPENAI_API_KEY`** for personal/live mode. Optional: **`OPENAI_MODEL`**, **`PUSHOVER_TOKEN`**, **`PUSHOVER_USER`**.
+4. Rebuild or **Factory reboot** the Space after changing secrets.
+5. Confirm behavior: with key → real answers; without key → demo-mode message, app still healthy.
 
-### Steps
+### Profile files on the Space
 
-1. Create a new Space with SDK type **Gradio**.
-2. Push this repository as-is (keep `app.py` as the entrypoint).
-3. In Space settings -> **Variables and secrets**, set:
-   - required: `OPENAI_API_KEY` (for full AI responses)
-   - optional: `OPENAI_MODEL`, `PUSHOVER_TOKEN`, `PUSHOVER_USER`
-4. Restart/rebuild the Space.
-
-### Profile file behavior (`me/resume.pdf`, `me/linkedin.pdf`)
-
-- If present, these files are loaded and used as grounding context.
-- If missing/unparseable, startup continues safely and the app falls back to `me/summary.txt`.
-- The app only reads these files; it does not write, modify, or overwrite them.
+- If **`me/resume.pdf`** / **`me/linkedin.pdf`** are in the Space repository, their extracted text is used in the system prompt.
+- If they are absent or not text-extractable, startup still succeeds; **`me/summary.txt`** remains the primary fallback text source.
+- **Read-only guarantee:** the codebase never opens these PDFs for writing and has no logic that persists chat or profile data into `me/`.
 
 ## Limitations
 
@@ -175,9 +186,18 @@ This project should be deployed as a **Gradio Space**:
 ## Roadmap
 
 - Add persistent storage for captured leads and unknown questions.
-- Add prompt/context regression tests.
-- Add CI workflow for test + lint checks.
+- Add prompt/context regression tests (beyond current smoke and unit tests).
 - Add optional structured conversation analytics.
+
+## GitHub repository metadata
+
+Suggested **description** (short, for the GitHub “About” box):
+
+> Gradio + OpenAI persona chat grounded in local resume/summary PDFs; Hugging Face Spaces–ready, with demo mode when API keys are absent.
+
+Suggested **topics** (`About` → Topics):
+
+`gradio` `openai` `chatbot` `huggingface-spaces` `python` `llm` `persona` `portfolio` `resume` `pypdf`
 
 ## Project Status
 

@@ -7,6 +7,10 @@ __pycache__/
 *.tmp
 *.bak
 
-# Optional local profile files
+# Optional local profile files (use `git add -f me/*.pdf` if you want them in the remote Space repo)
 me/resume.pdf
 me/linkedin.pdf
+
+# Future local exports / generated artifacts (keep directory, ignore contents)
+outputs/*
+!outputs/.gitkeep

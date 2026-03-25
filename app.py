@@ -13,6 +13,11 @@ load_dotenv(override=True)
 logging.basicConfig(level=logging.INFO)
 LOGGER = logging.getLogger(__name__)
 
+# Protected read-only profile inputs (never written by this app).
+PATH_LINKEDIN_PDF = "me/linkedin.pdf"
+PATH_RESUME_PDF = "me/resume.pdf"
+PATH_SUMMARY_TXT = "me/summary.txt"
+
 
 def push(text):
     token = os.getenv("PUSHOVER_TOKEN")
@@ -105,13 +110,13 @@ class Me:
         self.openai = OpenAI() if api_key else None
         self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
         self.name = "Amirhosein Mohaddesi"
-        self.linkedin = safe_load_pdf("me/linkedin.pdf")
-        self.resume = safe_load_pdf("me/resume.pdf")
+        self.linkedin = safe_load_pdf(PATH_LINKEDIN_PDF)
+        self.resume = safe_load_pdf(PATH_RESUME_PDF)
         try:
-            with open("me/summary.txt", "r", encoding="utf-8") as f:
+            with open(PATH_SUMMARY_TXT, "r", encoding="utf-8") as f:
                 self.summary = f.read().strip()
         except OSError:
-            LOGGER.warning("Summary file not found at me/summary.txt")
+            LOGGER.warning("Summary file not found at %s", PATH_SUMMARY_TXT)
             self.summary = ""
 
     def handle_tool_call(self, tool_calls):

@@ -23,3 +23,18 @@ def test_create_chat_interface_builds_without_openai_key(monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     interface = app.create_chat_interface()
     assert interface is not None
+
+
+def test_me_initializes_without_openai_key_no_exception(monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    me = app.Me()
+    assert me.openai is None
+    assert isinstance(me.summary, str)
+    assert isinstance(me.linkedin, str)
+    assert isinstance(me.resume, str)
+
+
+def test_protected_input_paths_are_module_level_constants():
+    assert app.PATH_RESUME_PDF == "me/resume.pdf"
+    assert app.PATH_LINKEDIN_PDF == "me/linkedin.pdf"
+    assert app.PATH_SUMMARY_TXT == "me/summary.txt"
