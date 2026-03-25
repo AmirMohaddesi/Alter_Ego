@@ -5,110 +5,184 @@ sdk: gradio
 sdk_version: 5.34.2
 ---
 
-# Alter Ego — Amir (Gradio + OpenAI)
+# Alter Ego
 
-**Live demo:** https://huggingface.co/spaces/AMIXXM/Career_Conversation
+Portfolio-style conversational agent that answers questions as a professional profile persona, grounded in local source documents (`me/summary.txt`, optional resume PDF, optional LinkedIn PDF).
 
-This project is a conversational AI agent that represents **Amirhosein Mohaddesi**, providing answers about his background, skills, and projects.  
-It runs locally or as a **Hugging Face Space** using Gradio.
+- Live demo: [Hugging Face Space](https://huggingface.co/spaces/AMIXXM/Career_Conversation)
+- Runtime: Python + Gradio + OpenAI Chat Completions
+- Primary use case: recruiter/client-facing Q&A assistant for a personal site
 
-> Note: The files `me/resume.pdf` and `me/linkedin.pdf` are placeholders.  
-> Replace them with your own public or redacted versions to personalize the Alter Ego.
+## Why This Project
 
----
+Most personal profile bots are either generic or hard to maintain. This project keeps the stack intentionally small while supporting:
 
-## Overview
+- persona-grounded responses from local files
+- lightweight tool calling for lead capture and unknown-question logging
+- local run plus Hugging Face Spaces deployment
 
-Alter Ego uses Gradio for interaction and OpenAI's API for generating responses.  
-The agent also includes small "tool" calls for recording user contact details and logging unknown questions for later improvement.
+## Core Features
 
-Key capabilities:
-- Persona-grounded answers (based on local profile text and PDFs)
-- Deployed seamlessly via Hugging Face Spaces
-- Uses `.env` for secrets (safe configuration)
-- Optional Pushover notifications for new user interactions
+- **Grounded context ingestion** from `me/summary.txt` and optional PDFs
+- **Function tools** for:
+  - recording contact details (`record_user_details`)
+  - logging unanswered questions (`record_unknown_question`)
+- **Optional Pushover notifications** for interaction events
+- **Fail-safe startup behavior** when PDFs are missing or unparsable
 
----
+## Architecture Overview
 
-## Repository Structure
-```
+Single-process Gradio app (`app.py`) with one main class:
+
+1. `Me.__init__` loads profile context from local files.
+2. `Me.system_prompt()` builds persona and context instructions.
+3. `Me.chat()` runs OpenAI chat-completions with function tools.
+4. Tool calls dispatch to local Python functions and optionally notify via Pushover.
+
+This design is intentionally simple and easy to fork for other personas.
+
+## Repository Layout
+
+```text
 .
 ├─ app.py
 ├─ requirements.txt
 ├─ .env.example
+├─ .gitignore
+├─ tests/
+│  └─ test_app.py
 ├─ me/
-│  ├─ summary.txt       # Please replace this with your own summery here
-│  ├─ resume.pdf        # placeholder
-│  └─ linkedin.pdf      # placeholder
+│  └─ summary.txt
 └─ README.md
 ```
 
----
+Optional files (not committed by default):
+- `me/resume.pdf`
+- `me/linkedin.pdf`
 
-## Environment Variables
+## Setup
 
-Before running, create a `.env` file in the root directory (copy from `.env.example`) and fill the following:
+### 1) Create and activate environment
 
-| Variable | Required | Description |
-|-----------|-----------|-------------|
-| `OPENAI_API_KEY` | Yes | Your OpenAI API key |
-| `PUSHOVER_TOKEN` | No | Optional, for receiving push notifications |
-| `PUSHOVER_USER`  | No | Optional, for Pushover user ID |
-| `HUGGINGFACEHUB_API_TOKEN` | No | Required only if calling Hugging Face Inference APIs directly |
+Windows PowerShell:
 
----
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
 
-## Local Setup
+macOS/Linux:
 
 ```bash
 python -m venv .venv
-# Windows: .venv\Scripts\activate
 source .venv/bin/activate
-
-pip install -r requirements.txt
-cp .env.example .env
-# Open .env and add your keys
-
-python app.py
-# The terminal will show a local Gradio URL to open in your browser
 ```
 
----
+### 2) Install dependencies
 
-## Deploy on Hugging Face Spaces
+```bash
+pip install -r requirements.txt
+```
 
-### Using the Web Interface
-1. Create a new **Gradio Space** on Hugging Face.
-2. Upload `app.py`, `requirements.txt`, `.env.example`, and `me/summary.txt`.
-3. In your Space settings, go to **Variables and secrets** and add:
-   - `OPENAI_API_KEY`
-   - (Optional) `PUSHOVER_TOKEN`, `PUSHOVER_USER`
-4. Commit and the Space will build automatically.
+### 3) Configure environment variables
 
-### Using Gradio Deploy
-If you used `gradio deploy`, keep the YAML header at the top of this README (already included).
+Copy and edit:
 
----
+Windows PowerShell:
 
-## Example Prompts
-- "What are Amir’s most notable ROS2 multi-robot projects?"
-- "How does Amir integrate human navigation data into his AI agents?"
-- "Can I leave my contact info for a follow-up?"
+```powershell
+Copy-Item .env.example .env
+```
 
----
+macOS/Linux:
 
-## Troubleshooting
-- **No chat response:** Ensure `OPENAI_API_KEY` is set correctly.
-- **PDF parsing error:** Use text-based (non-image) PDFs or rely only on `summary.txt`.
-- **Pushover errors:** Leave optional variables empty if not using notifications.
+```bash
+cp .env.example .env
+```
 
----
+Required variable:
+- `OPENAI_API_KEY`
 
-## Credits
-Created by **Amirhosein Mohaddesi** as part of **Ed Donner’s Udemy course**.  
-Mentioned with permission for feedback and endorsement.
+Optional variables:
+- `OPENAI_MODEL` (default: `gpt-4o-mini`)
+- `PUSHOVER_TOKEN`
+- `PUSHOVER_USER`
 
----
+## Quickstart
+
+```bash
+python app.py
+```
+
+Then open the local Gradio URL shown in the terminal.
+
+### Local modes
+
+- **Personal mode (full behavior):** set `OPENAI_API_KEY` and keep your profile files in `me/`.
+- **Demo mode (degraded):** if `OPENAI_API_KEY` is not set, the app still starts and returns a clear demo-mode message instead of crashing.
+
+## Example Usage
+
+Try prompts such as:
+- "What are your strongest robotics and ML skills?"
+- "Can you summarize your recent projects?"
+- "How can I contact you for collaboration?"
+
+Expected output:
+- grounded answers based on local profile docs
+- possible follow-up request for contact details
+- unknown-question tool logging when context is insufficient
+
+## Validation
+
+Run the included sanity tests:
+
+```bash
+pytest -q
+```
+
+These tests verify core non-network behaviors (PDF loading fallback and email validation tool behavior).
+
+## Deployment (Hugging Face Spaces)
+
+### Target type
+
+This project should be deployed as a **Gradio Space**:
+- `sdk: gradio` is defined in the README front matter
+- `app_file: app.py` is the active entrypoint
+
+### Steps
+
+1. Create a new Space with SDK type **Gradio**.
+2. Push this repository as-is (keep `app.py` as the entrypoint).
+3. In Space settings -> **Variables and secrets**, set:
+   - required: `OPENAI_API_KEY` (for full AI responses)
+   - optional: `OPENAI_MODEL`, `PUSHOVER_TOKEN`, `PUSHOVER_USER`
+4. Restart/rebuild the Space.
+
+### Profile file behavior (`me/resume.pdf`, `me/linkedin.pdf`)
+
+- If present, these files are loaded and used as grounding context.
+- If missing/unparseable, startup continues safely and the app falls back to `me/summary.txt`.
+- The app only reads these files; it does not write, modify, or overwrite them.
+
+## Limitations
+
+- Context quality depends on `me/summary.txt` and provided PDFs.
+- No persistence layer for tool outputs yet (notifications only).
+- No end-to-end tests against live OpenAI/Pushover APIs.
+
+## Roadmap
+
+- Add persistent storage for captured leads and unknown questions.
+- Add prompt/context regression tests.
+- Add CI workflow for test + lint checks.
+- Add optional structured conversation analytics.
+
+## Project Status
+
+Active personal portfolio project. Production-hardening in progress with emphasis on reproducibility and clear developer onboarding.
 
 ## License
-MIT License
+
+MIT (see `LICENSE`).

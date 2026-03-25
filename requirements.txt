@@ -1,6 +1,6 @@
-requests
-python-dotenv
-gradio
-pypdf
-openai
-openai-agents
+gradio==5.34.2
+openai==1.68.2
+pypdf==5.5.0
+python-dotenv==1.0.1
+pytest==8.3.5
+requests==2.32.3

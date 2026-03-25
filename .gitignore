@@ -1,0 +1,12 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.log
+*.tmp
+*.bak
+
+# Optional local profile files
+me/resume.pdf
+me/linkedin.pdf
