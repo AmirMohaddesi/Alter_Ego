@@ -7,7 +7,7 @@ sdk_version: 5.34.2
 
 # Alter Ego
 
-**Alter Ego** is a small, production-minded **Gradio chat demo** that answers career and background questions in a fixed persona, grounded in **local documents** you control. It uses OpenAI function calling for lightweight lead capture and “unknown question” logging (optional Pushover), and it is designed to **deploy cleanly on Hugging Face Spaces** without brittle local assumptions.
+**Alter Ego** is a **Gradio** chat demo that answers career questions in a fixed persona, grounded in **read-only local files** (`me/summary.txt`, optional PDFs). It uses OpenAI tool calling for lead capture and unknown-question logging (optional **Pushover**), and runs on **Hugging Face Spaces** with a safe **demo mode** when `OPENAI_API_KEY` is unset.
 
 - **Live demo:** [Hugging Face Space](https://huggingface.co/spaces/AMIXXM/Career_Conversation)
 - **Stack:** Python · Gradio · OpenAI Chat Completions · `pypdf` (read-only PDF text)
